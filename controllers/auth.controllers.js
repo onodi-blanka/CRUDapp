@@ -2,18 +2,18 @@ import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
-const prisma = new PrismaClient();
-
 // Register controller
-export const register = async (req, res) => {
+export const register = (prismaInstance) => async (req, res) => {
   const { email, password } = req.body;
   try {
-    const existingUser = await prisma.user.findUnique({ where: { email } });
+    const existingUser = await prismaInstance.user.findUnique({
+      where: { email },
+    });
     if (existingUser) {
       return res.status(400).json({ message: "User already exists" });
     }
     const hashedPass = await bcrypt.hash(password, 10);
-    const user = await prisma.user.create({
+    const user = await prismaInstance.user.create({
       data: { email, password: hashedPass },
     });
     return res.status(201).json({ message: "User created successfully", user });
@@ -22,11 +22,10 @@ export const register = async (req, res) => {
   }
 };
 
-// Login controller
-export const login = async (req, res) => {
+export const login = (prismaInstance) => async (req, res) => {
   const { email, password } = req.body;
   try {
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await prismaInstance.user.findUnique({ where: { email } });
     if (!user) {
       return res.status(400).json({ message: "User not found" });
     }
@@ -42,4 +41,3 @@ export const login = async (req, res) => {
     return res.status(500).json({ message: "Internal server error" });
   }
 };
-export default { register, login };
