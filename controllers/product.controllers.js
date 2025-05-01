@@ -1,16 +1,13 @@
-import { PrismaClient } from "@prisma/client";
-const prisma = new PrismaClient();
-
 // Get Products controller
-export const getProducts = async (req, res) => {
+export const getProducts = (prismaInstance) => async (req, res) => {
   try {
-    const products = await prisma.product.findMany({
+    const products = await prismaInstance.product.findMany({
       where: { userId: req.user.id },
     });
     if (products.length == 0) {
       return res.status(400).json({ message: "Empty products list" });
     }
-    res.json(products);
+    return res.status(200).json(products);
   } catch {
     res
       .status(500)
@@ -19,12 +16,12 @@ export const getProducts = async (req, res) => {
 };
 
 //Add Products Controller
-export const addProducts = async (req, res) => {
+export const addProducts = (prismaInstance) => async (req, res) => {
   const { name } = req.body;
   if (!name) {
     return res.status(400).json({ message: "Product name required" });
   }
-  const existingProduct = await prisma.product.findFirst({
+  const existingProduct = await prismaInstance.product.findFirst({
     where: {
       name: name,
       userId: req.user.id,
@@ -34,7 +31,7 @@ export const addProducts = async (req, res) => {
     return res.status(400).json({ message: "Product is already added" });
   }
   try {
-    const newProduct = await prisma.product.create({
+    const newProduct = await prismaInstance.product.create({
       data: { name, user: { connect: { id: req.user.id } } },
     });
     res
@@ -48,9 +45,9 @@ export const addProducts = async (req, res) => {
 };
 
 //Delete Product Controller
-export const deleteProduct = async (req, res) => {
+export const deleteProduct = (prismaInstance) => async (req, res) => {
   const { name } = req.body;
-  const productToBeDeleted = await prisma.product.findFirst({
+  const productToBeDeleted = await prismaInstance.product.findFirst({
     where: {
       name: name,
       userId: req.user.id,
@@ -62,7 +59,7 @@ export const deleteProduct = async (req, res) => {
       .json({ message: "Product is not in the product list" });
   }
   try {
-    const deleteProduct = await prisma.product.delete({
+    const deleteProduct = await prismaInstance.product.delete({
       where: { id: productToBeDeleted.id },
     });
     res.status(200).json({
@@ -76,8 +73,8 @@ export const deleteProduct = async (req, res) => {
 };
 
 //Delete All User Products Controller
-export const deleteAllProducts = async (req, res) => {
-  const existingProducts = await prisma.product.findMany({
+export const deleteAllProducts = (prismaInstance) => async (req, res) => {
+  const existingProducts = await prismaInstance.product.findMany({
     where: { userId: req.user.id },
   });
 
@@ -85,7 +82,7 @@ export const deleteAllProducts = async (req, res) => {
     return res.status(400).json({ message: "Product list is empty" });
   }
   try {
-    const deleteProducts = await prisma.product.deleteMany({
+    const deleteProducts = await prismaInstance.product.deleteMany({
       where: { userId: req.user.id },
     });
     res.status(200).json({
@@ -100,20 +97,20 @@ export const deleteAllProducts = async (req, res) => {
 };
 
 //Update Product Controller
-export const updateProduct = async (req, res) => {
+export const updateProduct = (prismaInstance) => async (req, res) => {
   const { name, newName } = req.body;
   if (!name || !newName) {
     return res.status(400).json({ message: "Product name required" });
   }
 
   try {
-    const updatingProduct = await prisma.product.findFirst({
+    const updatingProduct = await prismaInstance.product.findFirst({
       where: {
         name: name,
         userId: req.user.id,
       },
     });
-    const existingProduct = await prisma.product.findFirst({
+    const existingProduct = await prismaInstance.product.findFirst({
       where: {
         name: newName,
         userId: req.user.id,
@@ -125,7 +122,7 @@ export const updateProduct = async (req, res) => {
     if (!updatingProduct) {
       return res.status(400).json({ message: "Product not found" });
     }
-    const updateProduct = await prisma.product.update({
+    const updateProduct = await prismaInstance.product.update({
       where: { id: updatingProduct.id },
       data: { name: newName },
     });
@@ -140,16 +137,16 @@ export const updateProduct = async (req, res) => {
 };
 
 //Delete User Controller
-export const deleteUser = async (req, res) => {
+export const deleteUser = (prismaInstance) => async (req, res) => {
   const { email } = req.body;
   try {
-    const userToBeDeleted = await prisma.user.findUnique({
+    const userToBeDeleted = await prismaInstance.user.findUnique({
       where: { email: email },
     });
     if (!userToBeDeleted) {
       return res.status(400).json({ message: "User not found" });
     }
-    const deleteUser = await prisma.user.delete({
+    const deleteUser = await prismaInstance.user.delete({
       where: { email: email },
     });
     res.status(200).json({
@@ -158,7 +155,6 @@ export const deleteUser = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       message: "There was an error while deleting the user",
-      error: error.message,
     });
   }
 };
