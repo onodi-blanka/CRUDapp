@@ -27,6 +27,7 @@ jest.mock("@prisma/client", () => {
       user: {
         findUnique: jest.fn(),
         delete: jest.fn(),
+        deleteMany: jest.fn(),
       },
     })),
   };
@@ -434,54 +435,57 @@ describe("Delete User Controller", () => {
     jest.clearAllMocks();
   });
 
-  it("should return successfully and delete a user", async () => {
-    const req = { body: { email: "test@gmail.com" } };
+  it("should return 200 and delete the user and their products successfully", async () => {
+    const req = { user: { id: 1 } };
     const res = { status: jest.fn().mockReturnThis(), json: jest.fn() };
-    const mockUser = { id: 1, email: "test@gmail.com" };
-    prismaMock.user.findUnique.mockResolvedValue(mockUser);
-    prismaMock.user.delete.mockResolvedValue(mockUser);
+    prismaMock.user.findUnique.mockResolvedValue({ id: 1 });
+    prismaMock.product.deleteMany.mockResolvedValue({});
+    prismaMock.user.delete.mockResolvedValue({});
+
     await deleteUser(prismaMock)(req, res);
+
     expect(prismaMock.user.findUnique).toHaveBeenCalledWith({
-      where: { email: req.body.email },
+      where: { id: 1 },
     });
+
+    expect(prismaMock.product.deleteMany).toHaveBeenCalledWith({
+      where: { userId: 1 },
+    });
+
     expect(prismaMock.user.delete).toHaveBeenCalledWith({
-      where: { email: req.body.email },
+      where: { id: 1 },
     });
+
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.json).toHaveBeenCalledWith({
-      message: `User '${mockUser.email}' was deleted successfully`,
+      message: "User and products deleted successfully",
     });
   });
 
   it("should return 400 if user is not found", async () => {
-    const req = { body: { email: "test@gmail.com" } };
+    const req = { user: { id: 1 } };
     const res = { status: jest.fn().mockReturnThis(), json: jest.fn() };
     prismaMock.user.findUnique.mockResolvedValue(null);
+
     await deleteUser(prismaMock)(req, res);
+
     expect(prismaMock.user.findUnique).toHaveBeenCalledWith({
-      where: { email: req.body.email },
+      where: { id: 1 },
     });
+
     expect(res.status).toHaveBeenCalledWith(400);
     expect(res.json).toHaveBeenCalledWith({
       message: "User not found",
     });
   });
 
-  it("should return 500 if there is an error", async () => {
-    const req = { body: { email: "test@gmail.com" } };
+  it("should return 500 on unexpected error", async () => {
+    const req = { user: { id: 1 } };
     const res = { status: jest.fn().mockReturnThis(), json: jest.fn() };
-    const mockUser = {
-      email: "test@gmail.com",
-    };
-    prismaMock.user.findUnique.mockResolvedValue(mockUser);
-    prismaMock.user.delete.mockRejectedValue(new Error("Error"));
+    prismaMock.user.findUnique.mockRejectedValue(new Error("DB error"));
+
     await deleteUser(prismaMock)(req, res);
-    expect(prismaMock.user.findUnique).toHaveBeenCalledWith({
-      where: { email: req.body.email },
-    });
-    expect(prismaMock.user.delete).toHaveBeenCalledWith({
-      where: { email: req.body.email },
-    });
+
     expect(res.status).toHaveBeenCalledWith(500);
     expect(res.json).toHaveBeenCalledWith({
       message: "There was an error while deleting the user",

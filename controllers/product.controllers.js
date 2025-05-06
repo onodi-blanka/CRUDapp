@@ -138,21 +138,28 @@ export const updateProduct = (prismaInstance) => async (req, res) => {
 
 //Delete User Controller
 export const deleteUser = (prismaInstance) => async (req, res) => {
-  const { email } = req.body;
   try {
     const userToBeDeleted = await prismaInstance.user.findUnique({
-      where: { email: email },
+      where: { id: req.user.id },
     });
+
     if (!userToBeDeleted) {
       return res.status(400).json({ message: "User not found" });
     }
-    const deleteUser = await prismaInstance.user.delete({
-      where: { email: email },
+
+    await prismaInstance.product.deleteMany({
+      where: { userId: req.user.id },
     });
+
+    const deletedUser = await prismaInstance.user.delete({
+      where: { id: req.user.id },
+    });
+
     res.status(200).json({
-      message: `User '${deleteUser.email}' was deleted successfully`,
+      message: "User and products deleted successfully",
     });
   } catch (error) {
+    console.error("Error deleting user:", error);
     res.status(500).json({
       message: "There was an error while deleting the user",
     });

@@ -20,7 +20,7 @@ router.get("/getProducts", verifyToken, getProducts(prisma));
 router.post("/addProducts", verifyToken, addProducts(prisma));
 
 // Update Product
-router.put("/updateproduct", verifyToken, updateProduct(prisma));
+router.put("/updateProduct", verifyToken, updateProduct(prisma));
 
 // Delete Product
 router.delete("/deleteProduct", verifyToken, deleteProduct(prisma));
